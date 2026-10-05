@@ -20,6 +20,16 @@ const db = mysql.createConnection({
   }
 });
 
+const path = require('path');
+
+// Menyajikan file statis dari folder 'public'
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Mengarahkan halaman utama (/) ke index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // ====================================================
 // 1. FITUR CRUD BARANG
 // ====================================================
