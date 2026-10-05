@@ -9,15 +9,17 @@ app.use(express.json());
 app.use(express.static('public')); // Menyajikan file tampilan frontend
 
 // Konfigurasi Koneksi MySQL (Mendukung XAMPP Lokal & Cloud Hosting)
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'peminjaman_db',
-    port: process.env.DB_PORT || 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+const mysql = require('mysql2');
+
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+  ssl: {
+    rejectUnauthorized: false // Wajib untuk koneksi aman ke Aiven MySQL
+  }
 });
 
 // ====================================================
