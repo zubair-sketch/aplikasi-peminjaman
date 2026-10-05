@@ -155,6 +155,6 @@ app.post('/api/kembali', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server berjalan di http://localhost:${PORT}`);
+    console.log(`Server berjalan di fetch('/api/barang'):${PORT}`);
     module.exports = app;
 });
