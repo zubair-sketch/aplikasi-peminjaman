@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Peminjaman Barang QR Code</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 30px; }
+        form, .scanner-box { margin-bottom: 20px; background: #fafafa; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #007bff; color: white; }
+        #reader { width: 100%; max-width: 400px; margin: auto; }
+        .qr-img { width: 80px; height: 80px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Aplikasi Peminjaman Barang</h1>
+
+    <h2>1. Tambah Barang Baru</h2>
+    <form id="formBarang">
+        <input type="text" id="namaBarang" placeholder="Nama Barang" required>
+        <input type="text" id="kategoriBarang" placeholder="Kategori Barang" required>
+        <button type="submit">Simpan & Generate QR Code</button>
+    </form>
+
+    <h2>2. Pindai Kode QR (Pinjam / Kembali)</h2>
+    <div class="scanner-box">
+        <div id="reader"></div>
+        <p><strong>Hasil Scan ID:</strong> <span id="hasilScan">-</span></p>
+        
+        <input type="text" id="namaPeminjam" placeholder="Nama Peminjam (Diisi jika meminjam)">
+        <div style="display: flex; gap: 10px;">
+            <button onclick="prosesTransaksi('pinjam')" style="background: #007bff;">Proses Pinjam</button>
+            <button onclick="prosesTransaksi('kembali')" style="background: #ffc107; color: black;">Proses Kembali</button>
+        </div>
+    </div>
+
+    <h2>3. Daftar Barang & Kode QR</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th>Kategori</th>
+                <th>Status</th>
+                <th>QR Code</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="tabelBarang"></tbody>
+    </table>
+</div>
+
+<script>
+    let scannedBarangId = "";
+
+    document.addEventListener("DOMContentLoaded", muatBarang);
+
+    async function muatBarang() {
+        const res = await fetch('/api/barang');
+        const data = await res.json();
+        const tbody = document.getElementById('tabelBarang');
+        tbody.innerHTML = '';
+
+        data.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.nama}</td>
+                    <td>${item.kategori}</td>
+                    <td><strong>${item.status}</strong></td>
+                    <td><img src="${item.qr_code}" class="qr-img" alt="QR"></td>
+                    <td><button onclick="hapusBarang('${item.id}')" style="background: #dc3545;">Hapus</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById('formBarang').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nama = document.getElementById('namaBarang').value;
+        const kategori = document.getElementById('kategoriBarang').value;
+
+        const res = await fetch('/api/barang', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama, kategori })
+        });
+
+        if (res.ok) {
+            alert('Barang Berhasil Ditambahkan');
+            document.getElementById('formBarang').reset();
+            muatBarang();
+        }
+    });
+
+    async function hapusBarang(id) {
+        if (confirm('Yakin ingin menghapus barang ini?')) {
+            await fetch(`/api/barang/${id}`, { method: 'DELETE' });
+            muatBarang();
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        scannedBarangId = decodedText;
+        document.getElementById('hasilScan').innerText = decodedText;
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+
+    async function prosesTransaksi(tipe) {
+        if (!scannedBarangId) {
+            alert('Silakan scan QR Code barang terlebih dahulu!');
+            return;
+        }
+
+        const peminjam = document.getElementById('namaPeminjam').value;
+        if (tipe === 'pinjam' && !peminjam) {
+            alert('Masukkan nama peminjam!');
+            return;
+        }
+
+        const endpoint = tipe === 'pinjam' ? '/api/pinjam' : '/api/kembali';
+        const payload = tipe === 'pinjam' 
+            ? { barangId: scannedBarangId, peminjam } 
+            : { barangId: scannedBarangId };
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        alert(data.pesan);
+        
+        if (res.ok) {
+            document.getElementById('hasilScan').innerText = '-';
+            document.getElementById('namaPeminjam').value = '';
+            scannedBarangId = "";
+            muatBarang();
+        }
+    }
+</script>
+
+</body>
+</html>
