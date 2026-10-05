@@ -9,8 +9,6 @@ app.use(express.json());
 app.use(express.static('public')); // Menyajikan file tampilan frontend
 
 // Konfigurasi Koneksi MySQL (Mendukung XAMPP Lokal & Cloud Hosting)
-const mysql = require('mysql2');
-
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -18,7 +16,7 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME,
   port: process.env.DB_PORT,
   ssl: {
-    rejectUnauthorized: false // Wajib untuk koneksi aman ke Aiven MySQL
+    rejectUnauthorized: false
   }
 });
 
@@ -148,4 +146,5 @@ app.post('/api/kembali', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);
+    module.exports = app;
 });
