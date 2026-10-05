@@ -3,13 +3,17 @@ const QRCode = require('qrcode');
 const mysql = require('mysql2/promise');
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public')); // Menyajikan file tampilan frontend
 
 // Konfigurasi Koneksi MySQL (Mendukung XAMPP Lokal & Cloud Hosting)
-const db = mysql.createConnection({
+const mysql = require('mysql2');
+
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -17,7 +21,10 @@ const db = mysql.createConnection({
   port: process.env.DB_PORT,
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 const path = require('path');
@@ -35,22 +42,18 @@ app.get('/', (req, res) => {
 // ====================================================
 
 // Tambah Barang Baru & Generate QR
-app.post('/api/barang', async (req, res) => {
-    const { nama, kategori } = req.body;
-    const id = `BRG-${Date.now()}`;
-
-    try {
-        const qrCodeData = await QRCode.toDataURL(id);
-        const sql = 'INSERT INTO barang (id, nama, kategori, status, qr_code) VALUES (?, ?, ?, ?, ?)';
-        await pool.execute(sql, [id, nama, kategori, 'tersedia', qrCodeData]);
-
-        res.status(201).json({
-            pesan: 'Barang berhasil ditambahkan',
-            data: { id, nama, kategori, status: 'tersedia', qrCode: qrCodeData }
-        });
-    } catch (err) {
-        res.status(500).json({ pesan: 'Gagal menambah barang', error: err.message });
+app.post('/api/barang', (req, res) => {
+  const { id, nama, kategori, status, qr_code } = req.body;
+  
+  const query = 'INSERT INTO barang (id, nama, kategori, status, qr_code) VALUES (?, ?, ?, ?, ?)';
+  
+  db.query(query, [id, nama, kategori, status || 'tersedia', qr_code], (err, result) => {
+    if (err) {
+      console.error('Error DB:', err);
+      return res.status(500).json({ success: false, message: err.message });
     }
+    res.json({ success: true, message: 'Barang berhasil ditambahkan' });
+  });
 });
 
 // Ambil Semua Daftar Barang
