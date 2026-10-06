@@ -42,17 +42,26 @@ app.get('/api/barang', (req, res) => {
   });
 });
 
-// API Tambah Barang
+// API Tambah Barang (Auto-generate ID & QR Code)
 app.post('/api/barang', (req, res) => {
-  const { id, nama, kategori, status, qr_code } = req.body;
+  let { id, nama, kategori, status, qr_code } = req.body;
+
+  // Otomatis buat ID dan QR Code jika frontend tidak mengirim nilainya
+  if (!id) id = 'BRG-' + Date.now();
+  if (!qr_code) qr_code = id; 
+
+  if (!nama || !kategori) {
+    return res.status(400).json({ success: false, message: 'Nama dan kategori wajib diisi!' });
+  }
+
   const query = 'INSERT INTO barang (id, nama, kategori, status, qr_code) VALUES (?, ?, ?, ?, ?)';
-  
+
   db.query(query, [id, nama, kategori, status || 'tersedia', qr_code], (err, result) => {
     if (err) {
       console.error('Error DB:', err);
       return res.status(500).json({ success: false, message: err.message });
     }
-    res.json({ success: true, message: 'Barang berhasil ditambahkan' });
+    res.json({ success: true, message: 'Barang berhasil ditambahkan', id });
   });
 });
 
