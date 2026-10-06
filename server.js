@@ -32,41 +32,24 @@ app.get('/', (req, res) => {
 });
 
 // API Get Data Barang
-app.get('/api/barang', (req, res) => {
-  db.query('SELECT * FROM barang', (err, results) => {
-    if (err) {
-      console.error('Error DB:', err);
-      return res.status(500).json({ success: false, message: err.message });
-    }
-    res.json(results);
-  });
-});
-
-// API Tambah Barang (Auto-generate ID & QR Code)
 app.post('/api/barang', (req, res) => {
-  // Ambil data dari req.body dengan nilai default jika kosong
+  console.log('Data dari frontend:', req.body);
+
   const id = req.body.id || 'BRG-' + Date.now();
   const nama = req.body.nama || '';
   const kategori = req.body.kategori || '';
   const status = req.body.status || 'tersedia';
   const qr_code = req.body.qr_code || id;
 
-  if (!nama || !kategori) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Nama dan Kategori tidak boleh kosong!' 
-    });
-  }
-
   const query = 'INSERT INTO barang (id, nama, kategori, status, qr_code) VALUES (?, ?, ?, ?, ?)';
 
   db.query(query, [id, nama, kategori, status, qr_code], (err, result) => {
     if (err) {
-      console.error('MySQL Error:', err.message);
-      // Kirim detail error MySQL ke frontend agar mudah ditelusuri
-      return res.status(500).json({ success: false, message: err.message });
+      console.error('DATABASE ERROR:', err.sqlMessage || err.message);
+      return res.status(500).json({ success: false, message: err.sqlMessage || err.message });
     }
-    res.json({ success: true, message: 'Barang berhasil ditambahkan', id });
+    console.log('Berhasil disimpan:', result);
+    res.json({ success: true, message: 'Barang berhasil ditambahkan' });
   });
 });
 
