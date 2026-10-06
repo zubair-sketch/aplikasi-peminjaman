@@ -44,21 +44,26 @@ app.get('/api/barang', (req, res) => {
 
 // API Tambah Barang (Auto-generate ID & QR Code)
 app.post('/api/barang', (req, res) => {
-  let { id, nama, kategori, status, qr_code } = req.body;
-
-  // Otomatis buat ID dan QR Code jika frontend tidak mengirim nilainya
-  if (!id) id = 'BRG-' + Date.now();
-  if (!qr_code) qr_code = id; 
+  // Ambil data dari req.body dengan nilai default jika kosong
+  const id = req.body.id || 'BRG-' + Date.now();
+  const nama = req.body.nama || '';
+  const kategori = req.body.kategori || '';
+  const status = req.body.status || 'tersedia';
+  const qr_code = req.body.qr_code || id;
 
   if (!nama || !kategori) {
-    return res.status(400).json({ success: false, message: 'Nama dan kategori wajib diisi!' });
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Nama dan Kategori tidak boleh kosong!' 
+    });
   }
 
   const query = 'INSERT INTO barang (id, nama, kategori, status, qr_code) VALUES (?, ?, ?, ?, ?)';
 
-  db.query(query, [id, nama, kategori, status || 'tersedia', qr_code], (err, result) => {
+  db.query(query, [id, nama, kategori, status, qr_code], (err, result) => {
     if (err) {
-      console.error('Error DB:', err);
+      console.error('MySQL Error:', err.message);
+      // Kirim detail error MySQL ke frontend agar mudah ditelusuri
       return res.status(500).json({ success: false, message: err.message });
     }
     res.json({ success: true, message: 'Barang berhasil ditambahkan', id });

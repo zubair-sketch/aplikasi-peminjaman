@@ -91,17 +91,28 @@
         const kategori = document.getElementById('kategoriBarang').value;
 
         const res = await fetch('/api/barang', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nama, kategori })
-        });
-
-        if (res.ok) {
-            alert('Barang Berhasil Ditambahkan');
-            document.getElementById('formBarang').reset();
-            muatBarang();
-        }
-    });
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json' // Wajib ada agar Express bisa membaca req.body
+  },
+  body: JSON.stringify({
+    id: 'BRG-' + Date.now(),
+    nama: namaInput,        // sesuaikan nama variabel input kamu
+    kategori: kategoriInput, // sesuaikan nama variabel input kamu
+    status: 'tersedia',
+    qr_code: 'BRG-' + Date.now()
+  })
+})
+.then(res => res.json())
+.then(data => {
+  if (data.success) {
+    alert('Barang berhasil disimpan!');
+    location.reload();
+  } else {
+    alert('Gagal: ' + data.message);
+  }
+})
+.catch(err => console.error(err));
 
     async function hapusBarang(id) {
         if (confirm('Yakin ingin menghapus barang ini?')) {
